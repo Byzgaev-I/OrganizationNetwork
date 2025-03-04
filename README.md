@@ -195,11 +195,11 @@ resource "yandex_compute_instance" "private-vm" {
 
 #### 4.1. Подключение к публичной ВМ и проверка доступа в интернет
 
-[Вставьте скриншот подключения к публичной ВМ и результата ping google.com]
+![image](https://github.com/Byzgaev-I/OrganizationNetwork/blob/main/1-1.png)
 
 #### 4.2. Подключение к приватной ВМ и проверка доступа в интернет
 
-[Вставьте скриншот подключения к приватной ВМ через публичную и результата ping google.com]
+![image](https://github.com/Byzgaev-I/OrganizationNetwork/blob/main/2-2.png)
 
 #### 4.3. Проверка маршрутизации на приватной ВМ
 
