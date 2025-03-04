@@ -20,6 +20,7 @@
 - Публичная подсеть `public` с CIDR: 192.168.10.0/24
 - Приватная подсеть `private` с CIDR: 192.168.20.0/24
 
+![image](https://github.com/Byzgaev-I/OrganizationNetwork/blob/main/подсети.png)
 
 ### 2. Создание NAT-инстанса
 
@@ -86,7 +87,7 @@ resource "yandex_vpc_route_table" "nat-route" {
   }
 }
 ```
-
+![image](https://github.com/Byzgaev-I/OrganizationNetwork/blob/main/таблица%20маршрутицации.png)
 
 ### 3. Создание виртуальных машин
 
