@@ -190,7 +190,6 @@ resource "yandex_compute_instance" "private-vm" {
 ![image](https://github.com/Byzgaev-I/OrganizationNetwork/blob/main/виртуалки.png) 
 
 
-
 ### 4. Проверка работоспособности
 
 #### 4.1. Подключение к публичной ВМ и проверка доступа в интернет
@@ -201,9 +200,6 @@ resource "yandex_compute_instance" "private-vm" {
 
 ![image](https://github.com/Byzgaev-I/OrganizationNetwork/blob/main/2-2.png)
 
-#### 4.3. Проверка маршрутизации на приватной ВМ
-
-[Вставьте скриншот вывода команды ip route на приватной ВМ]
 
 ## Инфраструктура
 
@@ -243,15 +239,10 @@ resource "yandex_compute_instance" "private-vm" {
 +----------------------+        +----------------------------+
 ```
 
-## Результат
-
-Задание выполнено полностью. Создана работающая инфраструктура в Yandex Cloud:
+## Результат по заданию:
 - Настроена маршрутизация между подсетями
 - Публичная ВМ имеет доступ в интернет
 - Приватная ВМ имеет доступ в интернет через NAT-инстанс
 - Все соединения работают корректно
 
 
-=======
-# OrganizationNetwork
->>>>>>> f79a0aace00b3c1153e735c9e8e318e790b6d50d
