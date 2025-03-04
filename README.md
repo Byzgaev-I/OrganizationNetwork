@@ -20,9 +20,79 @@
 - Публичная подсеть `public` с CIDR: 192.168.10.0/24
 - Приватная подсеть `private` с CIDR: 192.168.20.0/24
 
+Для создания сетевой инфраструктуры использовались следующие ресурсы Terraform:
+
+```hcl
+resource "yandex__vpc__network" "network" {
+  name = "network"
+}
+
+resource "yandex__vpc__subnet" "public" {
+  name           = "public"
+  zone           = var.zone
+  network__id     = yandex__vpc__network.network.id
+  v4__cidr__blocks = ["192.168.10.0/24"]
+}
+
+resource "yandex__vpc__subnet" "private" {
+  name           = "private"
+  zone           = var.zone
+  network__id     = yandex__vpc__network.network.id
+  v4__cidr__blocks = ["192.168.20.0/24"]
+  route__table__id = yandex__vpc__route_table.nat-route.id
+}
+```
+
 ### 2. Создание NAT-инстанса
 
 В публичной подсети создан NAT-инстанс с фиксированным IP 192.168.10.254. Настроен для маршрутизации трафика из приватной подсети.
+
+```hcl
+resource "yandex_compute_instance" "nat-instance" {
+  name        = "nat-instance"
+  platform_id = "standard-v1"
+  zone        = var.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = var.image_id
+    }
+  }
+
+  network_interface {
+    subnet_id      = yandex_vpc_subnet.public.id
+    nat            = true
+    ip_address     = "192.168.10.254"
+    security_group_ids = [yandex_vpc_security_group.basic.id]
+  }
+
+  metadata = {
+    ssh-keys  = "ubuntu:${file(var.public_key_path)}"
+    user-data = <<-EOF
+      #!/bin/bash
+      apt-get update
+      apt-get install -y iptables-persistent traceroute tcpdump curl
+      
+      # Настройка IP-форвардинга
+      echo 'net.ipv4.ip_forward = 1' | tee /etc/sysctl.d/99-ip-forward.conf
+      sysctl -p /etc/sysctl.d/99-ip-forward.conf
+      
+      # Настройка NAT
+      iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+      iptables-save | tee /etc/iptables/rules.v4
+      
+      # Включение и сохранение правил
+      systemctl enable netfilter-persistent
+      netfilter-persistent save
+    EOF
+  }
+}
+```
 
 ### 3. Создание виртуальных машин
 
