@@ -20,28 +20,6 @@
 - Публичная подсеть `public` с CIDR: 192.168.10.0/24
 - Приватная подсеть `private` с CIDR: 192.168.20.0/24
 
-Для создания сетевой инфраструктуры использовались следующие ресурсы Terraform:
-
-```hcl
-resource "yandex__vpc__network" "network" {
-  name = "network"
-}
-
-resource "yandex__vpc__subnet" "public" {
-  name           = "public"
-  zone           = var.zone
-  network__id     = yandex__vpc__network.network.id
-  v4__cidr__blocks = ["192.168.10.0/24"]
-}
-
-resource "yandex__vpc__subnet" "private" {
-  name           = "private"
-  zone           = var.zone
-  network__id     = yandex__vpc__network.network.id
-  v4__cidr__blocks = ["192.168.20.0/24"]
-  route__table__id = yandex__vpc__route_table.nat-route.id
-}
-```
 
 ### 2. Создание NAT-инстанса
 
@@ -94,11 +72,123 @@ resource "yandex_compute_instance" "nat-instance" {
 }
 ```
 
+Настроена таблица маршрутизации.  
+Для приватной подсети настроена таблица маршрутизации, направляющая весь исходящий трафик через NAT-инстанс:  
+
+```hcl
+resource "yandex_vpc_route_table" "nat-route" {
+  name       = "nat-route-table"
+  network_id = yandex_vpc_network.network.id
+
+  static_route {
+    destination_prefix = "0.0.0.0/0"
+    next_hop_address   = "192.168.10.254"
+  }
+}
+```
+
+
 ### 3. Создание виртуальных машин
 
 Созданы две виртуальные машины:
 - Публичная ВМ с внешним IP и доступом в интернет
 - Приватная ВМ с доступом в интернет через NAT-инстанс
+
+В публичной и приватной подсетях созданы виртуальные машины:
+
+```hcl
+resource "yandex_compute_instance" "public-vm" {
+  name        = "public-vm"
+  platform_id = "standard-v1"
+  zone        = var.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8vmcue7aajpmeo39kk"  # Ubuntu 20.04 LTS
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.public.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.basic.id]
+  }
+
+  metadata = {
+    ssh-keys  = "ubuntu:${file(var.public_key_path)}"
+    user-data = <<-EOF
+      #!/bin/bash
+      # Обновляем пакеты
+      apt-get update
+      
+      # Устанавливаем необходимые пакеты
+      apt-get install -y openssh-server
+      
+      # Разрешаем аутентификацию по паролю
+      sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+      
+      # Устанавливаем пароль для пользователя ubuntu
+      echo 'ubuntu:password123' | chpasswd
+      
+      # Перезапускаем SSH
+      systemctl restart ssh
+    EOF
+  }
+}
+
+resource "yandex_compute_instance" "private-vm" {
+  name        = "private-vm"
+  platform_id = "standard-v1"
+  zone        = var.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8vmcue7aajpmeo39kk"  # Ubuntu 20.04 LTS
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.private.id
+    nat                = false
+    security_group_ids = [yandex_vpc_security_group.basic.id]
+  }
+
+  metadata = {
+    ssh-keys  = "ubuntu:${file(var.public_key_path)}"
+    user-data = <<-EOF
+      #!/bin/bash
+      # Обновляем пакеты
+      apt-get update
+      
+      # Устанавливаем необходимые пакеты
+      apt-get install -y openssh-server
+      
+      # Разрешаем аутентификацию по паролю
+      sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+      
+      # Устанавливаем пароль для пользователя ubuntu
+      echo 'ubuntu:password123' | chpasswd
+      
+      # Перезапускаем SSH
+      systemctl restart ssh
+    EOF
+  }
+}
+```
+
+![image](https://github.com/Byzgaev-I/OrganizationNetwork/blob/main/виртуалки.png) 
+
+
 
 ### 4. Проверка работоспособности
 
