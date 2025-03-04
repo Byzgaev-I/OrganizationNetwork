@@ -28,22 +28,21 @@ resource "yandex_compute_instance" "nat-instance" {
       apt-get update
       apt-get install -y iptables-persistent traceroute tcpdump curl
       
-      # Разрешаем аутентификацию по паролю
       sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
-      # Устанавливаем пароль для пользователя ubuntu
+
       echo 'ubuntu:password123' | chpasswd
-      # Перезапускаем SSH
+
       systemctl restart sshd
       
-      # Настройка IP-форвардинга
+   
       echo 'net.ipv4.ip_forward = 1' | tee /etc/sysctl.d/99-ip-forward.conf
       sysctl -p /etc/sysctl.d/99-ip-forward.conf
       
-      # Настройка NAT
+
       iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
       iptables-save | tee /etc/iptables/rules.v4
       
-      # Включение и сохранение правил
+     
       systemctl enable netfilter-persistent
       netfilter-persistent save
     EOF
@@ -79,16 +78,13 @@ resource "yandex_compute_instance" "public-vm" {
       # Обновляем пакеты
       apt-get update
       
-      # Устанавливаем необходимые пакеты
+   
       apt-get install -y openssh-server
-      
-      # Разрешаем аутентификацию по паролю
+    
       sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
       
-      # Устанавливаем пароль для пользователя ubuntu
       echo 'ubuntu:password123' | chpasswd
       
-      # Перезапускаем SSH
       systemctl restart ssh
     EOF
   }
@@ -120,19 +116,19 @@ resource "yandex_compute_instance" "private-vm" {
     ssh-keys  = "ubuntu:${file(var.public_key_path)}"
     user-data = <<-EOF
       #!/bin/bash
-      # Обновляем пакеты
+     
       apt-get update
       
-      # Устанавливаем необходимые пакеты
+     
       apt-get install -y openssh-server
       
-      # Разрешаем аутентификацию по паролю
+     
       sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
       
-      # Устанавливаем пароль для пользователя ubuntu
+  
       echo 'ubuntu:password123' | chpasswd
       
-      # Перезапускаем SSH
+     
       systemctl restart ssh
     EOF
   }
